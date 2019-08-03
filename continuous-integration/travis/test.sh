@@ -14,3 +14,6 @@ echo "Compile Scala"
 
 wake --init .
 wake --no-tty -j1 -dv 'compileScalaModule apiConfigChipsallianceScalaModule | getPathResult'
+
+cd api-config-chipsalliance/build-rules/sbt
+sbt compile
