@@ -36,20 +36,28 @@ object config {
   }
 
   abstract class Parameters extends View {
-    final def ++ (x: Parameters): Parameters =
-      new ChainParameters(this, x)
+    // x alter y: settings in 'y' overrule settings in 'x'
+    final def alter(rhs: Parameters): Parameters =
+      new ChainParameters(rhs, this)
 
     final def alter(f: (View, View, View) => PartialFunction[Any,Any]): Parameters =
-      Parameters(f) ++ this
+      alter(Parameters(f))
 
     final def alterPartial(f: PartialFunction[Any,Any]): Parameters =
-      Parameters((_,_,_) => f) ++ this
+      alter(Parameters((_,_,_) => f))
 
     final def alterMap(m: Map[Any,Any]): Parameters =
-      new MapParameters(m) ++ this
+      alter(new MapParameters(m))
 
     protected[config] def chain[T](site: View, tail: View, pname: Field[T]): Option[T]
     protected[config] def find[T](pname: Field[T], site: View) = chain(site, new TerminalView, pname)
+
+    // x orElse y: settings in 'x' overrule settings in 'y'
+    final def orElse(x: Parameters): Parameters = x.alter(this)
+
+    // Please use 'alter' or 'orElse' instead of '++'.
+    // People expect this to be alter (like Map ++ Map), but it's orElse.
+    final def ++ (x: Parameters): Parameters = orElse(x)
   }
 
   object Parameters {
