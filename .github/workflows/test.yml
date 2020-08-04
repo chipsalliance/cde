@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   test:
-    name: Wake 0.18 typecheck
+    name: Wake 0.18 scala compile
     runs-on: ubuntu-latest
     env:
       # $WIT_WORKSPACE path is relative to $GITHUB_WORKSPACE
@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        path: wit-packages/environment-blockci-sifive
+        path: wit-packages/ci-root-package
         # Fetch all history and tags
         fetch-depth: 0
 
@@ -23,10 +23,10 @@ jobs:
         command: init
         arguments: |
           ${{ env.WIT_WORKSPACE }}
-          -a ./wit-packages/environment-blockci-sifive
+          -a ./wit-packages/ci-root-package
         force_github_https: true
 
-    - name: Run wake typecheck
+    - name: Run wake-based scala build
       working-directory: ${{ env.WIT_WORKSPACE }}
       run: |
         set -euxo pipefail
@@ -40,7 +40,7 @@ jobs:
             sudo dpkg -i /tmp/wake.deb && \
             rm /tmp/wake.deb
         # Run a dummy target, which still triggers a compilation of Wake code.
-        wake -x Unit
+        wake -x 'compileScalaModule apiConfigChipsallianceScalaModule | getPathResult'
 
   lint:
     name: Lint
