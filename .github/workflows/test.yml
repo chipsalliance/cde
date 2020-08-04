@@ -1,0 +1,60 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Wake 0.18 typecheck
+    runs-on: ubuntu-latest
+    env:
+      # $WIT_WORKSPACE path is relative to $GITHUB_WORKSPACE
+      WIT_WORKSPACE: wit-workspace
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: wit-packages/environment-blockci-sifive
+        # Fetch all history and tags
+        fetch-depth: 0
+
+    - name: 'Wit Init'
+      uses: sifive/wit/actions/wit@v0.13.1
+      with:
+        command: init
+        arguments: |
+          ${{ env.WIT_WORKSPACE }}
+          -a ./wit-packages/environment-blockci-sifive
+        force_github_https: true
+
+    - name: Run wake typecheck
+      working-directory: ${{ env.WIT_WORKSPACE }}
+      run: |
+        set -euxo pipefail
+        # Take back ownership of wit workspace, since it was created while
+        # under a Docker container and permissions default to root.
+        uid=$(id -u)
+        gid=$(id -g)
+        sudo chown -R "$uid:$gid" .
+        # Install Wake
+        curl -L -o /tmp/wake.deb https://github.com/sifive/wake/releases/download/v0.18.1/ubuntu-18-04-wake_0.18.1-1_amd64.deb && \
+            sudo dpkg -i /tmp/wake.deb && \
+            rm /tmp/wake.deb
+        # Run a dummy target, which still triggers a compilation of Wake code.
+        wake -x Unit
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Run lint check
+      run: |
+        set +e  # GitHub defaults to -e, but we want to do our own error handling
+        if matching_files=$(grep --files-with-matches '\s\+$' *); then
+          echo "Trailing whitespace detected. Please remove trailing whitespace in the following files:"
+          echo
+          echo "$matching_files"
+          exit 1
+        fi
