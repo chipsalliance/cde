@@ -1,6 +1,6 @@
 [
     {
-        "commit": "0fafb118bad02b02d02d58ef62250390452faa8e",
+        "commit": "771f11581b86079bf3411f85ce77495e7444c08e",
         "name": "api-scala-sifive",
         "source": "git@github.com:sifive/api-scala-sifive.git"
     }
