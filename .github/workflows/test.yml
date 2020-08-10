@@ -1,77 +1,37 @@
 name: Test
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 
 jobs:
   test:
-    name: Wake 0.18 scala compile
+    name: Wake scala compile
     runs-on: ubuntu-latest
-    env:
-      # $WIT_WORKSPACE path is relative to $GITHUB_WORKSPACE
-      WIT_WORKSPACE: wit-workspace
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Wit Init
+      uses: sifive/wit/actions/init@v0.13.2
       with:
-        path: wit-packages/ci-root-package
-        # Fetch all history and tags
-        fetch-depth: 0
+        additional_packages: git@github.com:sifive/environment-blockci-sifive.git::0.7.0
 
-    - name: 'Wit Init'
-      uses: sifive/wit/actions/wit@v0.13.1
+    - name: Run wake scala compile
+      uses: sifive/environment-blockci-sifive/actions/wake@0.7.0
       with:
-        command: init
-        arguments: |
-          ${{ env.WIT_WORKSPACE }}
-          -a ./wit-packages/ci-root-package
-        force_github_https: true
-
-    - name: Run wake-based scala build
-      working-directory: ${{ env.WIT_WORKSPACE }}
-      run: |
-        set -euxo pipefail
-        # Take back ownership of wit workspace, since it was created while
-        # under a Docker container and permissions default to root.
-        sudo chown -R $(id -u):$(id -g) .
-        # Install Wake
-        curl -L -o /tmp/wake.deb https://github.com/sifive/wake/releases/download/v0.18.1/ubuntu-18-04-wake_0.18.1-1_amd64.deb && \
-            sudo dpkg -i /tmp/wake.deb && \
-            rm /tmp/wake.deb
-        # Run the scala compilation API
-        wake -x 'compileScalaModule apiConfigChipsallianceScalaModule | getPathResult'
+        command: -x 'compileScalaModule apiConfigChipsallianceScalaModule | getPathResult'
 
   sbt:
     name: SBT scala compile
     runs-on: ubuntu-latest
-    env:
-      # $WIT_WORKSPACE path is relative to $GITHUB_WORKSPACE
-      WIT_WORKSPACE: wit-workspace
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        path: wit-packages/ci-root-package
-        # Fetch all history and tags
-        fetch-depth: 0
-
-    - name: 'Wit Init'
-      uses: sifive/wit/actions/wit@v0.13.1
-      with:
-        command: init
-        arguments: |
-          ${{ env.WIT_WORKSPACE }}
-          -a ./wit-packages/ci-root-package
-        force_github_https: true
-
-    - name: Run sbt-based scala build
-      working-directory: ${{ env.WIT_WORKSPACE }}
-      run: |
-        set -euxo pipefail
-        # Take back ownership of wit workspace, since it was created while
-        # under a Docker container and permissions default to root.
-        sudo chown -R $(id -u):$(id -g) .
-        # Use sbt to run the compile
-        sbt compile
+    - uses: sifive/wit/actions/init@v0.13.2
+    - name: Run SBT scala compile
+      run: cd api-config-chipsalliance; sbt compile
 
   lint:
     name: Lint
