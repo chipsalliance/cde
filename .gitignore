@@ -1,4 +1,5 @@
 build-rules/sbt/project/target/
 build-rules/sbt/target/
+build-rules/mill/out/
 *.swp
 *~
