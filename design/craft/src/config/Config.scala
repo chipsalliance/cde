@@ -93,7 +93,7 @@ object config {
 
   private class PartialParameters(f: (View, View, View) => PartialFunction[Any,Any]) extends Parameters {
     protected[config] def chain[T](site: View, tail: View, pname: Field[T]) = {
-      val g = f(site, this, tail)
+      val g = f(site, new ChainView(this, tail), tail)
       if (g.isDefinedAt(pname)) Some(g.apply(pname).asInstanceOf[T]) else tail.find(pname, site)
     }
   }
