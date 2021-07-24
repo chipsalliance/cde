@@ -12,3 +12,6 @@ reformat:
 
 checkformat:
 	mill -i __.checkFormat 
+
+test:
+	mill -i __.tests
