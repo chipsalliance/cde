@@ -14,7 +14,7 @@ object cde extends mill.Cross[cde]("2.12.13", "2.13.6")
 
 class cde(val crossScalaVersion: String) extends CrossScalaModule with ScalafmtModule with PublishModule {
   object tests extends Tests with TestModule.Utest {
-    def ivyDeps = Agg(ivys.utest)
+    override def ivyDeps = Agg(ivys.utest)
   }
 
   def publishVersion = de.tobiasroeser.mill.vcs.version.VcsVersion.vcsState().format()
