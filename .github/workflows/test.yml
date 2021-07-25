@@ -35,3 +35,25 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - run: echo Success!
+
+  publish:
+    needs: [all_tests_passed]
+    runs-on: ubuntu-20.04
+    if: github.event_name == 'push'
+    concurrency: publish-${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: jodersky/setup-mill@v0.2.3
+        with:
+          mill-version: 0.9.9
+      - name: Publish
+        run: make publish
+        env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}

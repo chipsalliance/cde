@@ -29,4 +29,31 @@ class cde(val crossScalaVersion: String) extends CrossScalaModule with ScalafmtM
       Developer("terpstra", "Wesley W. Terpstra", "https://github.com/terpstra")
     )
   )
+
+  override def sonatypeUri: String = "https://s01.oss.sonatype.org/service/local"
+  override def sonatypeSnapshotUri: String = "https://s01.oss.sonatype.org/content/repositories/snapshots"
+  def githubPublish = T {
+    os.proc("gpg", "--import", "--no-tty", "--batch", "--yes").call(stdin = java.util.Base64.getDecoder.decode(sys.env("PGP_SECRET").replace("\n", "")))
+    val PublishModule.PublishData(artifactInfo, artifacts) = publishArtifacts()
+    new SonatypePublisher(
+      sonatypeUri,
+      sonatypeSnapshotUri,
+      s"${sys.env("SONATYPE_USERNAME")}:${sys.env("SONATYPE_PASSWORD")}",
+      true,
+      Seq(
+        s"--passphrase=${sys.env("PGP_PASSPHRASE")}",
+        "--no-tty",
+        "--pinentry-mode=loopback",
+        "--batch",
+        "--yes",
+        "-a",
+        "-b"
+      ).flatMap(_.split("[,]")),
+      60000,
+      5000,
+      T.log,
+      120000,
+      true
+    ).publish(artifacts.map { case (a, b) => (a.path, b) }, artifactInfo, true)
+  }
 }

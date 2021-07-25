@@ -15,3 +15,6 @@ checkformat:
 
 test:
 	mill -i __.tests
+
+publish:
+	mill -i __.githubPublish
