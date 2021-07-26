@@ -1,62 +1,77 @@
 # api-config-chipsalliance
 A Scala library for Context-Dependent Evironments, where a key-value environment is passed down a module hierarchy and each returned value depends on the query’s origin as well as the key. CDE is provably superior to existing parameterization schemes because it avoids introducing non-local source code changes when a design is modified, while also enabling features for large-scale design space exploration of compositions of generators.
 
-## Parameterization
+## User Guide
 
-Parameters objects are the core abstraction of the CDE library.
-Fundementally they are wrappers around Scala's partial functions.
-You can look up a specific parameter by querying a Parameters object with a key, and if any case in the partial function's cases match the key you provide, the parameters object will return the supplied value. Critically, this supplied value can be dependent on any other parameters defined where the lookup is performed.
+The library presents its key-value storage under an abstract class `Parameters`. Values stored in `Parameters` are each associated with a case object extends `Field[T]`.
 
-### Looking up a key's value
+The main interface for user to create a `Parameters` object is using `Config` object. Its `apply` method takes `(View, View, View) => PartialFunction[Any, Any]` as a lookup table.
 
-Assuming some:
+```scala
+//Field MyKey1 contains value of type Int
+case object MyKey1 extends Field[Int]
+//Field MyKey2 contains value of type String, with default value "None"
+case object MyKey2 extends Field[String]("None")
 
-     abstract val p: Parameters
+// The meaning of parameter (site, here, up) will be explained later
+val p: Parameters = Config((site, here, up) => {
+  case MyKey1 => 0
+  case MyKey2 => "MyValue"
+})
 
-We can ask it to supply an Int value for the string key "MY_KEY":
+// Apply Paramaters object to Field to query
+assert(p(MyKey1) == 0)
+```
 
-     val myInt = p[Int]("MY_KEY")
+### Parameter Overrides
+We can use one `Parameters` to override another. Each single `Config` is like a row in a table, while each `Field` is a column in the table. To concat two table together, we have `alter` and `orElse` methods.
+`alter` puts the rhs at bottom of the table and `orElse` puts the rhs at top of the table.
 
-Note that keys and values can both be of *any* type. If the parameters object does not contain key MY_KEY, or if the object returned cannot be dynamically cast to an instance of the specified type, an exception will be thrown.
+A query will inspect the table from bottom to up, row by row, until it finds the first row having the key defined.
 
-We provide a shorthand of the above for more concise access and to enable compile time checking for key collisions amongst libraries:
+For example: `Config1.alter(Config2).alter(Config3)` yields
 
-     case object MyKey extends Field[Int]
-     val myInt = p(MyKey)
+|  | Key1 | Key2 | Key3 |... |
+| ---- | ---- | ---- | ---- | ---- |
+| `Config1` | V1 | | | |
+| `Config2` | V2 | V3 | | |
+|`Config3` | | | V4 | |
 
-### Modifying a key's value
+And now `p(Key1) == V2`, `p(Key2) == V3` and `p(Key3) == V4`.
 
-As the Parameters environment is passed around a Module hierarchy, it can be modified to override a key's value.
-The simplest syntax is to use a new partial function to override specific values:
+The same `Parameters` can also be defined by `Config3.orElse(Config2).orElse(Config1)`. There is also deprecated shorthand `++` for `orElse`, so `Config3 ++ Config2 ++ Config1` is also valid.
 
-     val child = p.alterPartial({case MyKey => 2})
+### Environment Reference
+Each query contains the entire environment of where the query originates. This is pass to the lookup table of each `Config` by `(site, here, up)` arguments.
 
-The altered environment can then be passed to child Modules.
+- `site` dynamically refers to the entire table
+- `here` dynamically refers to the current row of the table
+- `up` dynamically refers to the rows appearing up than the current row
 
-### site
+For example, in the following `Parameters`
 
-The sole additional feature of a CDE over a regular environment is a special object, called site, that dynamically points to the originating CDE of the parameter query.
-This site functionality is extremely useful in the context of hardware generation because it allows for specialization based on contextual or geographic information that is injected into the generator by any intermediate node in the module hierarchy. This ability makes it possible to compose designs by defining parameters that depend on other parameters.
+| | Key1 | Key2 | Key3 | Key4 |
+| ---- | ---- | ---- | ---- | ---- |
+| `Config1` | 1 | `site(Key1)` | | |
+| `Config2` | 2 | | `here(Key1)` | `up(Key2)` |
+| `Config3` | 3 | | | |
 
-     case object MyLocation extends Field[String]
-     val p = Parameters.empty.alter((pname, site, here) => pname match {
-       case MyInt => site(MyLocation) match {
-         case "icache" => 128
-         case "dcache" => 256
-       }
-     })
+The value for each key is
 
-     val ic = Module(new Icache(p.alterPartial({case MyLocation => "icache"})))
-     val dc = Module(new Dcache(p.alterPartial({case MyLocation => "dcache"})))
+- Key1: 3, given by `Config3`
+- Key2: 3, as it is value of `Key1` in the entire table
+- Key3: 2, as it is value of `Key1` defined in the current row
+- Key4: 1, as it is value of `Key2` defined in the upper row, which is in turn value of `Key1` defined in the table *containing the rows before `Config2`*, which is where `here(Key1)` originated.
 
-By specializing the value of MyInt based on where it is called from, we can minimize the amount of code that has to be changed as we add additional locations that use MyInt, or interpose additional modules into the hierarchy between the top-level Module and the instantiation of ic and dc.
+If one config layer does not refer environment at all, `alterMap` and `alterPartial` can be used to avoid create a redundant `Config` object, as they accept `Map` and `PartialFunction` as their parameter.
 
-## Design Space Exploration with Knobs and Constraints
+## Implementation Details
+This section discusses the internal data structure used to track environment information. Normal reader can skip the section.
 
-Knobs are abstractions of unbound parameters (independent variables) in the design and are used to interface with design space exploration tools.
+`alter` and `orElse` function wraps two operand as `ChainParameters`, which forms a binary tree when `alter` are called multiple times. Query on `ChainParameters` calls `chain` method.
 
-Constraints are expressions that set limits on Parameters and Knobs and can be used to specify design requirements and bound design-space exploration.
+The `chain` method traverses the tree by wrapping the right child in `ChainView`, which records `up` for later reference, and invoking `chain` on the left child. This happens recursively until a leaf node is found. Then if the requested key is not in the node, we can turn to `chain` of currently `up` node.
 
-## Configs
+The following figure illustrates a querying process of `Parameters` constructed by `C1.alter(C2).alter(C3).orElse(C4)`. `chain` is invoked on the node in blue, and `ChainView` generated is in red.
 
-Config objects provide a way to represent particular configurations of a design as Scala source code. They contain the top-level Parameters environment that contains any values not bound within the design, bindings for Knob values left free by the Parameters, and any top-level constraints that are to be applied to design space exploration.
+![Query Example](doc/ChainParameters.svg)
