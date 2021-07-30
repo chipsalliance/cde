@@ -47,7 +47,10 @@ object config {
     final def lift[T](pname: Field[T]): Option[T] = find(pname)
 
     // All queries start here
-    protected[config] def find[T](pname: Field[T]): Option[T]
+    protected[this] def find[T](pname: Field[T]): Option[T]
+
+    // Internal find call should have site information passed along
+    protected[config] def find[T](pname: Field[T], site: View): Option[T] = find(pname)
   }
 
   /** Parameters are chain-able views, which can be strung together like a linked list.
@@ -112,7 +115,8 @@ object config {
       up:    View,
       pname: Field[T]
     ): Option[T]
-    protected[config] def find[T](pname: Field[T]): Option[T] =
+
+    protected[this] def find[T](pname: Field[T]): Option[T] =
       chain(this, this, new TerminalView, pname)
 
     // x orElse y: settings in 'x' overrule settings in 'y'
@@ -168,19 +172,23 @@ object config {
     def find[T](pname: Field[T]): Option[T] = pname.default
   }
 
-  private class ChainView(head: Parameters, site: View, up: View) extends View {
-    def find[T](pname: Field[T]) = head.chain(site, this, up, pname)
+  private class ChainView(head: Parameters, up: View) extends View {
+    // If find is called in lookup table directly --- new site env
+    def find[T](pname: Field[T]) = head.chain(this, this, up, pname)
+
+    // If find is called in chain --- use site passed along
+    override def find[T](pname: Field[T], site: View) = head.chain(site, this, up, pname)
   }
 
   private class ChainParameters(x: Parameters, y: Parameters) extends Parameters {
     def chain[T](site: View, here: View, up: View, pname: Field[T]) = {
-      x.chain(site, here, new ChainView(y, site, up), pname)
+      x.chain(site, here, new ChainView(y, up), pname)
     }
   }
 
   private class EmptyParameters extends Parameters {
     def chain[T](site: View, here: View, up: View, pname: Field[T]) =
-      up.find(pname)
+      up.find(pname, site)
   }
 
   private class PartialParameters(
@@ -194,7 +202,7 @@ object config {
     ) = {
       val g = f(site, here, up)
       if (g.isDefinedAt(pname)) Some(g.apply(pname).asInstanceOf[T])
-      else up.find(pname)
+      else up.find(pname, site)
     }
   }
 
@@ -206,7 +214,7 @@ object config {
       pname: Field[T]
     ) = {
       val g = map.get(pname)
-      if (g.isDefined) Some(g.get.asInstanceOf[T]) else up.find(pname)
+      if (g.isDefined) Some(g.get.asInstanceOf[T]) else up.find(pname, site)
     }
   }
 }
