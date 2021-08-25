@@ -1,16 +1,5 @@
 // Copyright 2016-2019 SiFive, Inc.
-// 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// 
-//     http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 
 package chipsalliance.rocketchip
 
@@ -19,8 +8,7 @@ object config {
   /** Superclass of all Parameter keys
     * @param default Optional default value, if a query with this key is not found
     */
-  abstract class Field[T] private (val default: Option[T])
-  {
+  abstract class Field[T] private (val default: Option[T]) {
     def this() = this(None)
     def this(default: T) = this(Some(default))
   }
@@ -28,6 +16,7 @@ object config {
   /** Super class of all Parameter classes. Defines basic querying APIs.
     */
   abstract class View {
+
     /** Looks up a parameter name within this view to obtain the corresponding value
       * Throws an error if the parameter value is not found
       *
@@ -37,12 +26,15 @@ object config {
       */
     final def apply[T](pname: Field[T]): T = {
       val out = find(pname)
-      require (out.isDefined, s"Key ${pname} is not defined in Parameters")
+      require(out.isDefined, s"Key ${pname} is not defined in Parameters")
       out.get
     }
 
     // We need to leave this in until all submodules can be bumped
-    @deprecated("up(XYZ, site) is no longer necessary; remove the superfluous site argument", "CDE 0.1")
+    @deprecated(
+      "up(XYZ, site) is no longer necessary; remove the superfluous site argument",
+      "CDE 0.1"
+    )
     final def apply[T](pname: Field[T], ignore: View): T = apply(pname)
 
     /** Looks up a parameter name in `this` view to obtain the corresponding value
@@ -63,6 +55,7 @@ object config {
     * continue the query.
     */
   abstract class Parameters extends View {
+
     /** Create a new Parameters object, when queried, searches first in the rhs Parameters. If no value is found, then
       * continue search in this Parameters. Note that this is an immutable operation, creating a new Parameters object.
       * Neither `this` nor `rhs` are modified by this function.
@@ -84,7 +77,9 @@ object config {
       * @param f A function to first search in
       * @return a new Parameters object whose settings are first the `f`, then `this`
       */
-    final def alter(f: (View, View, View) => PartialFunction[Any,Any]): Parameters =
+    final def alter(
+      f: (View, View, View) => PartialFunction[Any, Any]
+    ): Parameters =
       alter(Parameters(f))
 
     /** Create a new Parameters object, when queried, searches first in the `f` partial function. If no value is found,
@@ -96,8 +91,8 @@ object config {
       * @param f A function to first search in
       * @return a new Parameters object whose settings are first the `f`, then `this`
       */
-    final def alterPartial(f: PartialFunction[Any,Any]): Parameters =
-      alter(Parameters((_,_,_) => f))
+    final def alterPartial(f: PartialFunction[Any, Any]): Parameters =
+      alter(Parameters((_, _, _) => f))
 
     /** Create a new Parameters object, when queried, searches first in the map. If no value is found,
       * then continue search in `this`. Parameters. Note that this is an immutable operation, creating a new Parameters
@@ -108,11 +103,17 @@ object config {
       * @param m a map containing parameters
       * @return a new Parameters object whose settings are first the `f`, then `this`
       */
-    final def alterMap(m: Map[Any,Any]): Parameters =
+    final def alterMap(m: Map[Any, Any]): Parameters =
       alter(new MapParameters(m))
 
-    protected[config] def chain[T](site: View, here: View, up: View, pname: Field[T]): Option[T]
-    protected[config] def find[T](pname: Field[T]): Option[T] = chain(this, this, new TerminalView, pname)
+    protected[config] def chain[T](
+      site:  View,
+      here:  View,
+      up:    View,
+      pname: Field[T]
+    ): Option[T]
+    protected[config] def find[T](pname: Field[T]): Option[T] =
+      chain(this, this, new TerminalView, pname)
 
     // x orElse y: settings in 'x' overrule settings in 'y'
     final def orElse(x: Parameters): Parameters = x.alter(this)
@@ -123,10 +124,11 @@ object config {
       * should become
       *   `a.orElse(b)`
       */
-    final def ++ (x: Parameters): Parameters = orElse(x)
+    final def ++(x: Parameters): Parameters = orElse(x)
   }
 
   object Parameters {
+
     /** Create a new empty Parameters object
       * @return
       */
@@ -138,7 +140,8 @@ object config {
       * @param f Function to create a new parameters object
       * @return
       */
-    def apply(f: (View, View, View) => PartialFunction[Any,Any]): Parameters = new PartialParameters(f)
+    def apply(f: (View, View, View) => PartialFunction[Any, Any]): Parameters =
+      new PartialParameters(f)
   }
 
   /** Configs are concrete user-extensible parameter objects.
@@ -146,9 +149,15 @@ object config {
     * @param p
     */
   class Config(p: Parameters) extends Parameters {
-    def this(f: (View, View, View) => PartialFunction[Any,Any]) = this(Parameters(f))
+    def this(f: (View, View, View) => PartialFunction[Any, Any]) =
+      this(Parameters(f))
 
-    protected[config] def chain[T](site: View, here: View, up: View, pname: Field[T]) = p.chain(site, here, up, pname)
+    protected[config] def chain[T](
+      site:  View,
+      here:  View,
+      up:    View,
+      pname: Field[T]
+    ) = p.chain(site, here, up, pname)
     override def toString = this.getClass.getSimpleName
     def toInstance = this
   }
@@ -170,18 +179,32 @@ object config {
   }
 
   private class EmptyParameters extends Parameters {
-    def chain[T](site: View, here: View, up: View, pname: Field[T]) = up.find(pname)
+    def chain[T](site: View, here: View, up: View, pname: Field[T]) =
+      up.find(pname)
   }
 
-  private class PartialParameters(f: (View, View, View) => PartialFunction[Any,Any]) extends Parameters {
-    protected[config] def chain[T](site: View, here: View, up: View, pname: Field[T]) = {
+  private class PartialParameters(
+    f: (View, View, View) => PartialFunction[Any, Any])
+      extends Parameters {
+    protected[config] def chain[T](
+      site:  View,
+      here:  View,
+      up:    View,
+      pname: Field[T]
+    ) = {
       val g = f(site, here, up)
-      if (g.isDefinedAt(pname)) Some(g.apply(pname).asInstanceOf[T]) else up.find(pname)
+      if (g.isDefinedAt(pname)) Some(g.apply(pname).asInstanceOf[T])
+      else up.find(pname)
     }
   }
 
   private class MapParameters(map: Map[Any, Any]) extends Parameters {
-    protected[config] def chain[T](site: View, here: View, up: View, pname: Field[T]) = {
+    protected[config] def chain[T](
+      site:  View,
+      here:  View,
+      up:    View,
+      pname: Field[T]
+    ) = {
       val g = map.get(pname)
       if (g.isDefined) Some(g.get.asInstanceOf[T]) else up.find(pname)
     }
