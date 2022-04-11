@@ -1,5 +1,5 @@
-# api-config-chipsalliance
-A Scala library for Context-Dependent Evironments, where a key-value environment is passed down a module hierarchy and each returned value depends on the query’s origin as well as the key. CDE is provably superior to existing parameterization schemes because it avoids introducing non-local source code changes when a design is modified, while also enabling features for large-scale design space exploration of compositions of generators.
+# CDE
+A Scala library for Context-Dependent Environments, where a key-value environment is passed down a module hierarchy and each returned value depends on the key and the query’s origin. CDE is provably superior to existing parameterization schemes because it avoids introducing non-local source code changes when a design is modified, while also enabling features for large-scale design space exploration of compositions of generators.
 
 ## User Guide
 
