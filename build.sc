@@ -53,7 +53,7 @@ class cde(val crossScalaVersion: String) extends CrossScalaModule with ScalafmtM
       5000,
       T.log,
       120000,
-      true
+      false
     ).publish(artifacts.map { case (a, b) => (a.path, b) }, artifactInfo, true)
   }
 }
