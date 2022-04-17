@@ -48,7 +48,7 @@ class cde(val crossScalaVersion: String) extends CrossScalaModule with ScalafmtM
         "--yes",
         "-a",
         "-b"
-      ).flatMap(_.split("[,]")),
+      ),
       60000,
       5000,
       T.log,
