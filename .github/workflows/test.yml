@@ -35,6 +35,7 @@ jobs:
     if: github.event_name == 'push'
     concurrency: publish-${{ github.sha }}
     container: archlinux/archlinux:latest
+    environment: sonatype
     steps:
       - name: Install dependencies
         run: pacman -Syu --noconfirm make mill git
