@@ -40,6 +40,9 @@ jobs:
       - name: Install dependencies
         run: pacman -Syu --noconfirm make mill git
       - uses: actions/checkout@v2
+        with:
+          # checkout all history for vcs version detection
+          fetch-depth: 0
       - name: work around https://github.com/actions/checkout/issues/760
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Publish
