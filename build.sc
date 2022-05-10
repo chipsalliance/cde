@@ -30,8 +30,6 @@ class cde(val crossScalaVersion: String) extends CrossScalaModule with ScalafmtM
     )
   )
 
-  override def sonatypeUri: String = "https://s01.oss.sonatype.org/service/local"
-  override def sonatypeSnapshotUri: String = "https://s01.oss.sonatype.org/content/repositories/snapshots"
   def githubPublish = T {
     os.proc("gpg", "--import", "--no-tty", "--batch", "--yes").call(stdin = java.util.Base64.getDecoder.decode(sys.env("PGP_SECRET").replace("\n", "")))
     val PublishModule.PublishData(artifactInfo, artifacts) = publishArtifacts()
