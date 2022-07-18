@@ -10,46 +10,41 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container: archlinux/archlinux:latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: jodersky/setup-mill@v0.2.3
-        with:
-          mill-version: 0.9.9
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm make mill git
+      - uses: actions/checkout@v3.0.2
       - name: Test
         run: make test
 
   check_format:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container: archlinux/archlinux:latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: jodersky/setup-mill@v0.2.3
-        with:
-          mill-version: 0.9.9
-      - name: Check Format
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm make mill git
+      - uses: actions/checkout@v3
+      - name: Test
         run: make checkformat
 
-  all_tests_passed:
-    name: "all tests passed"
-    needs: [test, check_format]
-    runs-on: ubuntu-20.04
-    steps:
-      - run: echo Success!
-
   publish:
-    needs: [all_tests_passed]
-    runs-on: ubuntu-20.04
+    needs: [test, check_format]
+    runs-on: ubuntu-latest
     if: github.event_name == 'push'
     concurrency: publish-${{ github.sha }}
-
+    container: archlinux/archlinux:latest
+    environment: sonatype
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm make mill git
+      - uses: actions/checkout@v3
         with:
+          # checkout all history for vcs version detection
           fetch-depth: 0
-      - uses: jodersky/setup-mill@v0.2.3
-        with:
-          mill-version: 0.9.9
+      - name: Trust GitHub workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Publish
         run: make publish
         env:
