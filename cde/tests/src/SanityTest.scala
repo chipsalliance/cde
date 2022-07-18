@@ -1,5 +1,5 @@
 import utest._
-import chipsalliance.rocketchip.config.{Config, Field, Parameters}
+import org.chipsalliance.cde.config.{Config, Field, Parameters}
 
 case object MyKey1 extends Field[Int](-1)
 case object MyKey2 extends Field[Int](-1)
