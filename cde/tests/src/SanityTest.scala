@@ -79,13 +79,14 @@ object SanityTest extends TestSuite {
         C3.orElse(C2).orElse(C1)(MyKey2) ==> 2
       }
 
-      test("Each site/here/up query has its own environment") {
+      test("site() is always site()") {
         val C123 = C1.alter(C2).alter(C3)
 
         C123(MyKey1) ==> C3(MyKey1)
         // C123(MyKey4) ==> C2(up(MyKey2))
-        // C2(up(MyKey2)) then evaluates C1(site(MyKey1)) in environment C1
-        C123(MyKey4) ==> C1(MyKey1)
+        // C2(up(MyKey2)) then evaluates C1(site(MyKey1))
+        // site here still refers to C123 as query begins
+        C123(MyKey4) ==> C123(MyKey1)
       }
     }
   }
