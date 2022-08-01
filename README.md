@@ -44,9 +44,9 @@ The same `Parameters` can also be defined by `Config3.orElse(Config2).orElse(Con
 ### Environment Reference
 Each query contains the entire environment of where the query originates. This is pass to the lookup table of each `Config` by `(site, here, up)` arguments.
 
-- `site` dynamically refers to the entire table
 - `here` dynamically refers to the current row of the table
 - `up` dynamically refers to the rows appearing up than the current row
+- `site` dynamically refers to the entire table. When it gets called by `here` or `up` queries, it still refers to the **entire** table instead of current row or upper half as indicated by `here` or `up` respectively.
 
 For example, in the following `Parameters`
 
@@ -61,7 +61,7 @@ The value for each key is
 - Key1: 3, given by `Config3`
 - Key2: 3, as it is value of `Key1` in the entire table
 - Key3: 2, as it is value of `Key1` defined in the current row
-- Key4: 1, as it is value of `Key2` defined in the upper row, which is in turn value of `Key1` defined in the table *containing the rows before `Config2`*, which is where `here(Key1)` originated.
+- Key4: 3, as it is value of `Key2` defined in the upper row, which is in turn value of `Key1` defined in the table, which should be 3 as overriden by `Config3`.
 
 If one config layer does not refer environment at all, `alterMap` and `alterPartial` can be used to avoid create a redundant `Config` object, as they accept `Map` and `PartialFunction` as their parameter.
 
