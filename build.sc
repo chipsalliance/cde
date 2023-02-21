@@ -4,14 +4,14 @@ import scalafmt._
 import publish._
 import $file.common
 
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.1.4`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.3.0`
 import de.tobiasroeser.mill.vcs.version.VcsVersion
 
 object ivys {
-  val utest = ivy"com.lihaoyi::utest:0.7.11"
+  val utest = ivy"com.lihaoyi::utest:0.8.1"
 }
 
-object cde extends mill.Cross[cde]("2.12.16", "2.13.8")
+object cde extends mill.Cross[cde]("2.12.17", "2.13.10")
 
 class cde(val crossScalaVersion: String) extends common.CDEModule with CrossScalaModule with ScalafmtModule with PublishModule {
   object tests extends Tests with TestModule.Utest {
