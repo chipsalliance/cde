@@ -23,9 +23,9 @@ class cde(val crossScalaVersion: String) extends common.CDEModule with CrossScal
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "org.chipsalliance",
-    url = "https://www.github.com/chipsalliance/api-config-chipsalliance",
+    url = "https://www.github.com/chipsalliance/cde",
     licenses = Seq(License.`Apache-2.0`),
-    versionControl = VersionControl.github("chipsalliance", "api-config-chipsalliance"),
+    versionControl = VersionControl.github("chipsalliance", "cde"),
     developers = Seq(
       Developer("terpstra", "Wesley W. Terpstra", "https://github.com/terpstra")
     )
