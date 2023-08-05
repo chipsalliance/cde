@@ -28,7 +28,7 @@ object SanityTest extends TestSuite {
         altered(MyKey2) ==> 2
       }
       test("alterPartial") {
-        val altered = empty.alterPartial({case MyKey1 => 1; case MyKey3 => 3})
+        val altered = empty.alterPartial({ case MyKey1 => 1; case MyKey3 => 3 })
 
         altered(MyKey1) ==> 1
         altered(MyKey3) ==> 3
