@@ -1,54 +1,47 @@
-name: Test
+name: CI
 
 on:
-  push:
-    branches:
-    - master
   pull_request:
     branches:
     - master
 
+name: Mill Continuous Integration
+env:
+  USER: runner
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: archlinux/archlinux:latest
     steps:
-      - name: Install dependencies
-        run: pacman -Syu --noconfirm make mill git
-      - uses: actions/checkout@v3.0.2
-      - name: Test
-        run: make test
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+      - uses: cachix/install-nix-action@v19
+        with:
+          install_url: https://releases.nixos.org/nix/nix-2.13.3/install
+          nix_path: nixpkgs=channel:nixos-unstable
+      - name: run test
+        run: |
+          nix --experimental-features 'nix-command flakes' develop -c mill -i -j 0 cdetest
 
   check_format:
     runs-on: ubuntu-latest
-    container: archlinux/archlinux:latest
     steps:
-      - name: Install dependencies
-        run: pacman -Syu --noconfirm make mill git
-      - uses: actions/checkout@v3
-      - name: Test
-        run: make checkformat
-
-  publish:
-    needs: [test, check_format]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    concurrency: publish-${{ github.sha }}
-    container: archlinux/archlinux:latest
-    environment: sonatype
-    steps:
-      - name: Install dependencies
-        run: pacman -Syu --noconfirm make mill git
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
-          # checkout all history for vcs version detection
-          fetch-depth: 0
-      - name: Trust GitHub workspace
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      - name: Publish
-        run: make publish
-        env:
-          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
-          PGP_SECRET: ${{ secrets.PGP_SECRET }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          submodules: 'true'
+      - uses: cachix/install-nix-action@v19
+        with:
+          install_url: https://releases.nixos.org/nix/nix-2.13.3/install
+          nix_path: nixpkgs=channel:nixos-unstable
+      - name: check format
+        run: |
+          nix --experimental-features 'nix-command flakes' develop -c mill -i -j 0 "__.checkFormat"
